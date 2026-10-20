@@ -2,7 +2,6 @@
 """Yahoo Finance (unofficial, no API key) data layer + shared HTTP handler for the /api/* routes."""
 import http.cookiejar, json, threading, time, urllib.error, urllib.parse, urllib.request
 from datetime import datetime, timezone
-from http.server import BaseHTTPRequestHandler
 
 Q = "https://query1.finance.yahoo.com"
 _lock = threading.Lock()
@@ -247,21 +246,16 @@ def route(path, query):
     raise ValueError("Unknown endpoint")
 
 
-class Handler(BaseHTTPRequestHandler):
-    """Used by Vercel (one function per route) and, via server.py, locally."""
-
-    def log_message(self, *a):
-        pass
-
-    def do_GET(self):
-        u = urllib.parse.urlparse(self.path)
-        try:
-            code, body = 200, json.dumps(route(u.path, u.query))
-        except Exception as e:
-            code, body = 502, json.dumps({"error": str(e)})
-        self.send_response(code)
-        self.send_header("Content-Type", "application/json")
-        if code == 200:  # let Vercel's CDN absorb repeat requests so Yahoo sees fewer hits
-            self.send_header("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600")
-        self.end_headers()
-        self.wfile.write(body.encode())
+def respond(h):
+    """Answer one GET on a BaseHTTPRequestHandler `h` (shared by Vercel functions and server.py)."""
+    u = urllib.parse.urlparse(h.path)
+    try:
+        code, body = 200, json.dumps(route(u.path, u.query))
+    except Exception as e:
+        code, body = 502, json.dumps({"error": str(e)})
+    h.send_response(code)
+    h.send_header("Content-Type", "application/json")
+    if code == 200:  # let Vercel's CDN absorb repeat requests so Yahoo sees fewer hits
+        h.send_header("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600")
+    h.end_headers()
+    h.wfile.write(body.encode())

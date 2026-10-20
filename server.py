@@ -5,7 +5,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "api"))
-from _yahoo import Handler as ApiHandler  # noqa: E402
+from _yahoo import respond  # noqa: E402
 
 
 class H(SimpleHTTPRequestHandler):
@@ -14,7 +14,7 @@ class H(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         if urllib.parse.urlparse(self.path).path.startswith("/api/"):
-            return ApiHandler.do_GET(self)
+            return respond(self)
         return super().do_GET()
 
 

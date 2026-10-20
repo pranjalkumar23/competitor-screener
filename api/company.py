@@ -1,1 +1,11 @@
-from _yahoo import Handler as handler  # noqa: F401  (Vercel looks for `handler`)
+from http.server import BaseHTTPRequestHandler
+
+from _yahoo import respond
+
+
+class handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        respond(self)
+
+    def log_message(self, *a):
+        pass
