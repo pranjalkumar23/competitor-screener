@@ -1,3 +1,11 @@
 {
-  "version": 2
+  "version": 2,
+  "builds": [
+    { "src": "index.html", "use": "@vercel/static" },
+    { "src": "api/company.py", "use": "@vercel/python" },
+    { "src": "api/similar.py", "use": "@vercel/python" },
+    { "src": "api/analysts.py", "use": "@vercel/python" },
+    { "src": "api/sectors.py", "use": "@vercel/python" },
+    { "src": "api/universe.py", "use": "@vercel/python" }
+  ]
 }
