@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Competitor Opportunity Screener</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --ink:#1c2330; --mute:#6b7585; --line:#e3e7ee; --good:#1a7f4b; --bad:#b3261e; --warn:#a15c00; --accent:#2f5bea; --soft:#f0f3f9; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#12151b; --card:#1b2029; --ink:#e8ecf3; --mute:#8d97a8; --line:#2b323f; --good:#4cc38a; --bad:#ff7b72; --warn:#e3b341; --accent:#7b9bff; --soft:#232a36; } }
+  * { box-sizing:border-box; }
+  body { margin:0; font:13px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:var(--bg); color:var(--ink); }
+  main { max-width:1320px; margin:0 auto; padding:14px 16px 28px; }
+  header { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px; }
+  h1 { font-size:17px; margin:0 12px 0 0; }
+  input, button, select { font:inherit; padding:6px 9px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink); }
+  button { cursor:pointer; } button.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+  #ticker { width:90px; text-transform:uppercase; } #peers { width:210px; } #key { width:150px; }
+  label.chk { display:inline-flex; gap:4px; align-items:center; color:var(--mute); cursor:pointer; }
+  label.chk input { padding:0; }
+  #status { color:var(--mute); margin:0 0 8px; min-height:16px; }
+  .hl { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+  .hl > div { flex:1 1 200px; background:var(--card); border:1px solid var(--line); border-radius:8px; padding:7px 10px; min-width:180px; }
+  .hl .t { color:var(--mute); font-size:11px; text-transform:uppercase; letter-spacing:.03em; }
+  .hl .v { font-weight:600; margin-top:1px; }
+  .bar { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-bottom:8px; }
+  .tabs { display:flex; gap:2px; border-bottom:1px solid var(--line); margin-bottom:0; flex:1; }
+  .tab { border:1px solid transparent; border-bottom:none; border-radius:6px 6px 0 0; padding:6px 14px; background:transparent; color:var(--mute); }
+  .tab.on { background:var(--card); border-color:var(--line); color:var(--ink); font-weight:600; position:relative; top:1px; }
+  .tab[disabled] { opacity:.45; cursor:default; }
+  .tab .n { color:var(--mute); font-weight:400; margin-left:3px; }
+  .chips { display:flex; gap:10px; align-items:center; margin:6px 0; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:0 8px 8px 8px; }
+  .tw { overflow:auto; max-height:calc(100vh - 290px); min-height:240px; }
+  table { border-collapse:separate; border-spacing:0; width:100%; }
+  th, td { padding:6px 9px; text-align:right; border-bottom:1px solid var(--line); white-space:nowrap; vertical-align:middle; }
+  th { position:sticky; top:0; background:var(--card); z-index:2; color:var(--mute); font-size:11px; font-weight:600; cursor:pointer; user-select:none; }
+  th:first-child, td:first-child { text-align:left; position:sticky; left:0; background:var(--card); z-index:1; border-right:1px solid var(--line); }
+  th:first-child { z-index:3; }
+  td.l, th.l { text-align:left; }
+  tr.row { cursor:pointer; } tr.row:hover td { background:var(--soft); }
+  tr.row.base td { background:color-mix(in srgb, var(--accent) 8%, var(--card)); }
+  tr.detail td { background:var(--soft); white-space:normal; text-align:left; padding:10px 14px; position:static; border-right:none; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:10px 20px; }
+  .grid h4 { margin:0 0 3px; font-size:11px; color:var(--mute); text-transform:uppercase; letter-spacing:.03em; }
+  .grid p { margin:0; } .grid .m { color:var(--mute); }
+  .good { color:var(--good); } .bad { color:var(--bad); } .warn { color:var(--warn); } .mute { color:var(--mute); }
+  .pill { display:inline-block; padding:0 7px; border-radius:10px; font-size:11px; background:var(--line); }
+  .alert { display:inline-block; margin:1px 3px 1px 0; padding:0 7px; border-radius:10px; font-size:11px; border:1px solid var(--line); }
+  .alert.good { border-color:var(--good); } .alert.bad { border-color:var(--bad); } .alert.warn { border-color:var(--warn); }
+  .bar-s { display:inline-block; height:7px; border-radius:4px; background:var(--accent); vertical-align:middle; margin-right:5px; }
+  .sub { color:var(--mute); font-size:11px; }
+  .caret { color:var(--mute); display:inline-block; width:12px; }
+  a.info { color:var(--accent); text-decoration:none; font-weight:400; margin-left:3px; font-size:12px; }
+  a.info:hover { text-decoration:underline; }
+  #pop { position:fixed; z-index:50; width:320px; max-width:calc(100vw - 20px); background:var(--card); border:1px solid var(--line); border-radius:8px; padding:12px 14px; box-shadow:0 6px 24px rgba(0,0,0,.18); display:none; font-size:12.5px; }
+  #pop h3 { margin:0 0 6px; font-size:13px; } #pop p { margin:0 0 6px; } #pop b { color:var(--mute); font-weight:600; }
+  #pop .x { position:absolute; top:6px; right:10px; cursor:pointer; color:var(--mute); }
+  [data-an] { cursor:help; text-decoration:underline dotted; text-underline-offset:2px; }
+  #tip { position:fixed; z-index:60; width:340px; max-width:calc(100vw - 20px); background:var(--card); border:1px solid var(--line); border-radius:8px; padding:11px 13px; box-shadow:0 6px 24px rgba(0,0,0,.2); display:none; font-size:12.5px; text-align:left; white-space:normal; font-weight:400; }
+  #tip h4 { margin:0 0 6px; font-size:13px; } #tip p { margin:0 0 6px; } #tip .m { color:var(--mute); font-size:11.5px; }
+  #tip .dist { display:flex; height:8px; border-radius:4px; overflow:hidden; margin:3px 0 4px; } #tip .dist span { display:block; }
+  h2 { font-size:14px; margin:12px 0 6px; }
+  .mode { border-radius:14px; padding:4px 14px; color:var(--mute); }
+  .mode.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .lists { display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:8px; }
+  .lcard { text-align:left; background:var(--card); border:1px solid var(--line); border-radius:8px; padding:9px 11px; cursor:pointer; }
+  .lcard:hover, .lcard.on { border-color:var(--accent); }
+  .lcard .h { font-weight:600; } .lcard .d { color:var(--mute); font-size:12px; margin:2px 0 4px; } .lcard .p { font-size:12px; }
+  #dpanel { margin-top:10px; } #dpanel h3 { margin:0 0 2px; font-size:14px; }
+  .tag { display:inline-block; padding:0 7px; border-radius:10px; font-size:11px; border:1px solid var(--line); margin-right:3px; }
+  .tag.good { border-color:var(--good); color:var(--good); } .tag.warn { border-color:var(--warn); color:var(--warn); } .tag.bad { border-color:var(--bad); color:var(--bad); }
+  .rbar { display:inline-block; height:7px; border-radius:4px; vertical-align:middle; margin-right:5px; }
+  details { margin-top:10px; color:var(--mute); } details p { margin:6px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Competitor Opportunity Screener</h1>
+    <button class="mode on" data-m="discover">Discover</button><button class="mode" data-m="analyze">Analyze</button>
+    <input id="ticker" value="NVDA" placeholder="Ticker" aria-label="Ticker">
+    <input id="peers" placeholder="Competitors (optional): CVLT,CRWD" aria-label="Competitors">
+    <button class="primary" id="go">Analyze</button>
+    <label class="chk"><input type="checkbox" id="usOnly"> US-listed only</label>
+    <span style="flex:1"></span>
+    <input id="key" type="password" placeholder="Finnhub key (optional)" aria-label="Finnhub key">
+    <button id="saveKey">Save</button>
+  </header>
+  <div id="discover">
+    <p class="sub" style="font-size:12.5px;margin:2px 0 10px">Not sure where to start? Begin with what is working, then drill into a company. These are screens of what is performing, <b>not recommendations</b>. Lists use about 120 large-cap US stocks I picked by sector, not the whole market.</p>
+    <h2>1. Where the money is flowing <span class="sub">(last 3 months vs the S&amp;P 500)</span></h2>
+    <div class="card"><div class="tw" style="max-height:none;min-height:0"><table id="sect"></table></div></div>
+    <div class="sub" style="margin:4px 0 14px"><b>Leading</b> = beat the S&amp;P by 3+ points over 3 months. <b>Extended</b> = up 50%+ this year, so the move may be crowded. Click <b>See leaders</b> to list the biggest companies in a sector.</div>
+    <h2>2. Ready-made lists <span class="sub">(click one)</span></h2>
+    <div class="lists" id="lists"></div>
+    <div id="dpanel"></div>
+    <h2 style="margin-top:14px">3. Or start from a company you already know</h2>
+    <div class="lists" id="starters"></div>
+  </div>
+
+  <div id="analyze" hidden>
+  <div id="status"></div>
+  <div class="hl" id="hl"></div>
+  <div class="bar">
+    <div class="tabs" id="tabs"></div>
+    <div class="chips">
+      <span class="sub">Show:</span>
+      <label class="chk"><input type="checkbox" data-g="val" checked> Valuation</label>
+      <label class="chk"><input type="checkbox" data-g="gro" checked> Growth &amp; earnings</label>
+      <label class="chk"><input type="checkbox" data-g="div" checked> Dividends</label>
+    </div>
+  </div>
+  <div class="card"><div class="tw"><table id="tbl"></table></div></div>
+  <div class="sub" style="margin-top:6px">Click a row for full details. Click a column title to sort; click ⓘ next to a title to learn what it means.</div>
+  <details><summary>About this data</summary><div id="foot"></div></details>
+  </div>
+</main>
+
+<div id="pop" role="dialog"></div>
+<div id="tip" role="tooltip"></div>
+<script>
+// ---- Snapshot data: from web research on 2026-10-06. Figures are approximate; sources conflict in places. null = not found. ----
+const SNAPSHOT_DATE = "2026-10-06";
+const SNAP = {
+  NVDA: { name:"Nvidia",   role:"Benchmark (AI GPUs)",               ytd:null, upside:40.5, rating:"Strong Buy", fpe:25,   conf:55, why:"Record $5.76T cap; ~85-92% AI accelerator share; Morgan Stanley top pick.", earn:{last:"Aug 26, 2026",revYoy:106,rev:"$96.2B",eps:2.22,est:2.09,guide:"Q3 rev $108B; FY28 growth 70% vs ~44% expected",next:"2026-11-18",nextNote:"unconfirmed (sources say Nov 17-25)"}, div:{now:"$0.25/qtr",hist:"$0.01/qtr until May 2026, then raised 25x to $0.25; last paid Oct 1, 2026",total:"~$0.5-0.6",yld:"<0.5%"} },
+  AVGO: { name:"Broadcom", role:"Custom AI chips + networking",      ytd:10,   upside:51,   rating:"Strong Buy", fpe:null, conf:60, why:"AI revenue +221% YoY; targets $58B/$115B/$230B (2026/27/28); lagged peers YTD. Fwd P/E cited 19x-30s.", earn:{last:"Sep 2, 2026 (FQ3)",revYoy:86,rev:"$29.6B",eps:null,est:null,guide:"Q4 AI rev $21.7B (+236%); AI target $58B/$115B/$230B (2026/27/28)",next:"2026-12-10",nextNote:""}, div:{now:"$0.65/qtr",hist:"$0.59/qtr in FY25, raised 10% to $0.65 for FY26; 15 straight annual raises",total:"~$4.9-5.0",yld:"~0.7%"} },
+  MRVL: { name:"Marvell",  role:"Custom silicon + interconnect",     ytd:218,  upside:11,   rating:"Strong Buy", fpe:62,   conf:50, why:"Strong custom pipeline, but 200%+ run-up and few customers.", earn:{last:"Aug 27, 2026 (FQ2)",revYoy:37,rev:"$2.74B",eps:0.94,est:0.92,guide:"Q3 rev $3.15B; FY27 $12B (+45%), FY28 $18B (+50%)",next:null,nextNote:"date not found (typically late Nov)"}, div:{now:"$0.06/qtr",hist:"Flat $0.06/qtr; next ex-date Oct 9, 2026",total:"~$0.48",yld:"<0.1%"} },
+  AMD:  { name:"AMD",      role:"Direct GPU rival",                  ytd:184,  upside:5.25, rating:"Strong Buy", fpe:72,   conf:45, why:"Data center +107%; big OpenAI/Meta/Anthropic commitments; $1T cap, little upside to targets.", earn:{last:"Aug 4, 2026",revYoy:50,rev:"$11.54B",eps:1.66,est:1.62,guide:"Q3 rev ~$13B vs $12.5B expected; data center +107%",next:"2026-11-03",nextNote:"third-party estimate",stockMove:"Stock fell >8% after-hours despite beat"}, div:{now:"None",hist:"No common dividend found",total:"$0",yld:"0%"} },
+  MU:   { name:"Micron",   role:"HBM memory supplier (adjacent)",    ytd:null, upside:null, rating:null,         fpe:null, conf:45, why:"FQ4 rev $54.2B beat; supply tight through FY28; stock flat on beat (expectations high).", earn:{last:"Late Sep 2026 (FQ4)",revYoy:null,rev:"$54.23B",eps:33.42,est:31.72,guide:"Long-term deals $32B; supply tight through FY28",next:null,nextNote:"date not found (typically late Dec)",stockMove:"Stock -0.3% on beat"}, div:{now:"$0.15/qtr",hist:"$0.115/qtr, raised ~30% to $0.15 in FQ3 2026; $0.15 payable Oct 29, 2026",total:"~$0.95",yld:"<0.1%"} },
+  INTC: { name:"Intel",    role:"CPUs / foundry turnaround",         ytd:200,  upside:-4.7, rating:"Hold",       fpe:63,   conf:35, why:"Foundry still loses money; ~$23B share sale in Aug; consensus implies downside.", earn:{last:"Jul 23, 2026",revYoy:25,rev:"$16.1B",eps:0.42,est:0.21,guide:"Q3 rev $15.8-16.8B, EPS $0.38; GAAP EPS -$2.16 (CHIPS escrow mark)",next:null,nextNote:"date not found (typically late Oct)"}, div:{now:"Suspended",hist:"Suspended since Q4 2024; CHIPS Act deal bars dividends ~2 yrs",total:"$0",yld:"0%"} }
+};
+// Relationship data (research 2026-10-06; sources: Nvidia 10-K, CNBC, TrendForce, Next Platform, Motley Fool, company filings). us:false = not on a US exchange.
+const ENT = {
+  TSM:{name:"TSMC",us:true}, MU:{name:"Micron",us:true}, "000660.KS":{name:"SK Hynix",us:false}, "005930.KS":{name:"Samsung",us:false},
+  AMKR:{name:"Amkor",us:true}, ASX:{name:"ASE Technology (ADR)",us:true}, FN:{name:"Fabrinet",us:true}, SANM:{name:"Sanmina",us:true},
+  "2317.TW":{name:"Hon Hai (Foxconn)",us:false}, "3231.TW":{name:"Wistron",us:false}, "2356.TW":{name:"Inventec",us:false}, "6669.TW":{name:"Wiwynn",us:false},
+  COHR:{name:"Coherent",us:true}, LITE:{name:"Lumentum",us:true}, GLW:{name:"Corning",us:true}, APH:{name:"Amphenol",us:true}, CRDO:{name:"Credo",us:true},
+  VRT:{name:"Vertiv",us:true}, CLS:{name:"Celestica",us:true}, VICR:{name:"Vicor",us:true},
+  MSFT:{name:"Microsoft",us:true}, AMZN:{name:"Amazon",us:true}, META:{name:"Meta",us:true}, GOOGL:{name:"Alphabet (Google)",us:true}, FTNT:{name:"Fortinet",us:true},
+  OpenAI:{name:"OpenAI",us:false,priv:true}, Anthropic:{name:"Anthropic",us:false,priv:true}
+};
+// s = supplier, c = customer. conf: "filing" (company filing), "reported" (press/analyst), "assumed" (not named by company)
+const LINKS = [
+  {s:"TSM", c:"NVDA", layer:"Chip fabrication + CoWoS packaging", link:"Primary foundry", conf:"filing", note:"Advanced packaging (CoWoS) is the tightest link in Nvidia's supply chain."},
+  {s:"TSM", c:"AMD",  layer:"Foundry + CoWoS-L packaging", link:"Foundry", conf:"reported", note:"MI450 expected on N2P (Commercial Times/TechPowerUp; not AMD-confirmed)."},
+  {s:"TSM", c:"AVGO", layer:"Foundry (3nm XPUs)", link:"Foundry", conf:"reported", note:"Reportedly secured TSMC capacity through 2028; 3.5D XDSiP uses SoIC + CoWoS."},
+  {s:"TSM", c:"MRVL", layer:"Foundry (3nm/2nm custom XPU)", link:"Foundry", conf:"reported", note:"Microsoft Maia 200 on TSMC 3nm; Marvell has 2nm silicon."},
+  {s:"MU", c:"NVDA", layer:"HBM memory", link:"Supplier", conf:"reported", note:"First to reach volume production of HBM4, SOCAMM2 and PCIe Gen6 SSD for Vera Rubin."},
+  {s:"MU", c:"AMD",  layer:"HBM memory", link:"Supplier (MI350)", conf:"reported", note:"12-high HBM3E in MI350; Micron's role in Helios HBM4 is unconfirmed."},
+  {s:"000660.KS", c:"NVDA", layer:"HBM memory", link:"Primary HBM supplier", conf:"reported", note:"UBS: ~70% of HBM4 for Rubin; ~5.5x 2027 P/E per Motley Fool."},
+  {s:"005930.KS", c:"NVDA", layer:"Foundry + HBM", link:"Supplier", conf:"filing", note:"Named foundry and memory supplier in Nvidia's 10-K."},
+  {s:"005930.KS", c:"AMD",  layer:"HBM4 memory", link:"Primary HBM4 for MI455X", conf:"reported", note:"Agreement signed March 2026; primary does not mean exclusive."},
+  {s:"005930.KS", c:"AVGO", layer:"HBM4 memory", link:"HBM4 for OpenAI chip", conf:"reported", note:"Reportedly allocating >50% of Pyeongtaek foundry capacity to HBM4 base dies."},
+  {s:"AMKR", c:"NVDA", layer:"Advanced packaging / test", link:"Via TSMC agreement", conf:"reported", note:"Turnkey packaging for TSMC in a new US fab, slated 2027-28 (not yet revenue)."},
+  {s:"ASX", c:"AMD", layer:"Advanced packaging (EFB)", link:"Packaging partner", conf:"reported", note:"Part of AMD's $10B+ Taiwan supply-chain investment (May 2026); also SPIL, PTI."},
+  {s:"FN", c:"NVDA", layer:"Contract manufacturing", link:"Named in 10-K", conf:"filing", note:"Nvidia names it, with Hon Hai and Wistron, for assembly, test and packaging."},
+  {s:"SANM", c:"AMD", layer:"Rack / system manufacturing", link:"Manufacturing partner", conf:"reported", note:"Bought AMD's ZT Systems manufacturing business for $2.4B (Oct 2025)."},
+  {s:"2317.TW", c:"NVDA", layer:"Rack / system assembly", link:"Named in 10-K", conf:"filing", note:"Largest Nvidia server assembler by most accounts."},
+  {s:"3231.TW", c:"NVDA", layer:"Rack / system assembly", link:"Named in 10-K", conf:"filing", note:""},
+  {s:"3231.TW", c:"AMD",  layer:"ODM for Helios", link:"ODM", conf:"reported", note:""},
+  {s:"2356.TW", c:"NVDA", layer:"Rack / system assembly", link:"Partner (Blackwell Ultra / Rubin)", conf:"reported", note:""},
+  {s:"2356.TW", c:"AMD",  layer:"ODM for Helios", link:"ODM", conf:"reported", note:""},
+  {s:"6669.TW", c:"NVDA", layer:"Rack / system assembly", link:"Partner (Blackwell Ultra / Rubin)", conf:"reported", note:""},
+  {s:"6669.TW", c:"AMD",  layer:"ODM for Helios", link:"ODM", conf:"reported", note:""},
+  {s:"COHR", c:"NVDA", layer:"Lasers / optical networking", link:"Nvidia investment + purchase commitment", conf:"reported", note:"Reported $2B Nvidia investment (GitHub research note, less authoritative)."},
+  {s:"LITE", c:"NVDA", layer:"Lasers / optical networking", link:"Nvidia investment + purchase commitment", conf:"reported", note:"Same reported deal structure as Coherent; described as 'priced for perfection'."},
+  {s:"GLW", c:"NVDA", layer:"Optical fiber", link:"Nvidia deal (May 2026)", conf:"reported", note:"Nvidia may invest up to $3.2B; Corning to expand US optical capacity 10x. Up >250% in a year as of May."},
+  {s:"APH", c:"NVDA", layer:"NVLink connectors", link:"Supplier (GB200 analysis)", conf:"reported", note:"Older analysis; confirm current role."},
+  {s:"CRDO", c:"NVDA", layer:"High-speed connectivity", link:"Design-in (Kyber racks)", conf:"reported", note:"~$5-8K of content per Kyber rack; up ~259% in a year (March data)."},
+  {s:"VRT", c:"NVDA", layer:"Power + liquid cooling", link:"Ecosystem partner", conf:"reported", note:"800 VDC power portfolio for Rubin Ultra (2027); beta >2, lumpy hyperscale projects."},
+  {s:"CLS", c:"NVDA", layer:"Systems / networking hardware", link:"Ecosystem partner", conf:"reported", note:"Q2 2026 revenue +62% YoY to $4.70B, EPS +83%."},
+  {s:"CLS", c:"AMD",  layer:"Scale-up networking switches", link:"Helios rack partner", conf:"reported", note:"R&D, design and manufacturing of Helios scale-up switches at launch."},
+  {s:"VICR", c:"NVDA", layer:"Power modules", link:"Design-in", conf:"reported", note:"Named as a Vera Rubin design-in partner; little detail found."},
+  // Customers (Nvidia does not name them; hyperscalers are the usual analyst assumption)
+  ...["MSFT","AMZN","META","GOOGL"].map(c => ({s:"NVDA", c, layer:"AI GPUs", link:"Hyperscaler buyer", conf:"assumed", note:"Nvidia doesn't name customers. FY26 10-K: two direct customers were 22% and 14% of revenue; top-5 clouds a little over 50%."})),
+  {s:"AVGO", c:"GOOGL", layer:"Custom TPU", link:"Longest-standing XPU partner", conf:"reported", note:"Seven TPU generations since 2014; confirmed design partner through 2031."},
+  {s:"AVGO", c:"META", layer:"Custom MTIA", link:"XPU customer", conf:"reported", note:""},
+  {s:"AVGO", c:"OpenAI", layer:"Custom accelerator", link:"10 GW multi-year deal (Oct 2025)", conf:"reported", note:""},
+  {s:"AVGO", c:"Anthropic", layer:"TPU capacity", link:"Gigawatt-scale TPU deal", conf:"reported", note:"CEO: on track to be Broadcom's largest XPU customer in 2027."},
+  {s:"MRVL", c:"AMZN", layer:"Custom Trainium", link:"Custom silicon customer", conf:"reported", note:"Reports that AIChip took Trainium3/4 design work; Marvell says POs cover all of CY26 for Trainium 3."},
+  {s:"MRVL", c:"MSFT", layer:"Custom Maia", link:"Custom silicon customer", conf:"reported", note:"Maia 3nm on track to ramp 2H26 per management (via JPMorgan)."},
+  {s:"MRVL", c:"GOOGL", layer:"Custom inference chips", link:"New customer", conf:"reported", note:"Warrant-linked deal; Futurum cites vesting toward $120B."},
+  {s:"AMD", c:"OpenAI", layer:"Instinct GPUs", link:"Anchor customer", conf:"reported", note:"OpenAI, Meta and Anthropic reportedly committed ~14GW combined."},
+  {s:"AMD", c:"META", layer:"Instinct GPUs", link:"Anchor customer", conf:"reported", note:""},
+  {s:"AMD", c:"Anthropic", layer:"Instinct GPUs", link:"Anchor customer", conf:"reported", note:"AMD bought into Anthropic rather than giving shares away (CRN Asia)."},
+  {s:"AMD", c:"MSFT", layer:"Helios racks", link:"Latest Helios customer", conf:"reported", note:"TrendForce, Jul 2026."},
+  {s:"INTC", c:"FTNT", layer:"Foundry (Intel 4)", link:"First named foundry customer", conf:"reported", note:"Intel still seeking an anchor customer for its leading-edge nodes."}
+];
+// Curated competitor picks (my selection, not an official list). Used when you don't type competitors.
+const CURATED_PEERS = { RBRK:["CVLT","CRWD","PANW","S","CYBR","NTAP"] };
+
+// ---- Scoring: average of whichever components exist (0-100). Higher = more attractive. ----
+const clamp = (x,a=0,b=100)=>Math.max(a,Math.min(b,x));
+const RATING_PTS = { "Strong Buy":100, "Buy":80, "Hold":45, "Sell":15, "Strong Sell":0 };
+function score(r) {
+  const parts = [];
+  if (r.upside!=null) parts.push(clamp(50 + r.upside));            // +50% upside -> 100, -50% -> 0
+  if (r.rating)       parts.push(RATING_PTS[r.rating] ?? 50);
+  if (r.ytd!=null)    parts.push(clamp(100 - r.ytd/2.5));          // big YTD run-up = less margin of safety
+  if (r.fpe!=null)    parts.push(clamp(110 - r.fpe*1.2));          // 20x -> 86, 60x -> 38
+  return parts.length ? Math.round(parts.reduce((a,b)=>a+b,0)/parts.length) : null;
+}
+
+// ---- Alerts: derived from the earnings/growth fields ----
+const DAY = 864e5;
+function alertsFor(r) {
+  const a = [], e = r.earn; if (!e) return a;
+  const s = surprise(r);
+  if (s!=null) a.push(s>=0 ? ["good",`EPS beat ${s.toFixed(1)}%`] : ["bad",`EPS miss ${s.toFixed(1)}%`]);
+  if (e.revYoy!=null && e.revYoy>=50) a.push(["good",`High growth: revenue +${Math.round(e.revYoy)}% YoY`]);
+  else if (e.revYoy!=null && e.revYoy<0) a.push(["bad",`Revenue shrinking ${Math.round(e.revYoy)}% YoY`]);
+  if (e.stockMove && /fell|-\d/.test(e.stockMove)) a.push(["warn","Sold off despite results: "+e.stockMove]);
+  if (e.next) {
+    const d = (new Date(e.next) - Date.now())/DAY;
+    if (d>=-1 && d<=30) a.push(["warn",`Earnings in ${Math.max(0,Math.ceil(d))} days (${e.next})`]);
+  }
+  return a;
+}
+
+// ---- Live mode (Finnhub). Free key: https://finnhub.io ----
+const FH = "https://finnhub.io/api/v1";
+let memKey = "";
+const getKey = () => { try { return localStorage.getItem("fhKey") || memKey; } catch (e) { return memKey; } };
+const setKey = k => { memKey = k; try { localStorage.setItem("fhKey", k); } catch (e) {} };
+const fh = async (path, key) => {
+  const r = await fetch(`${FH}${path}${path.includes("?")?"&":"?"}token=${key}`);
+  if (!r.ok) throw new Error(`Finnhub ${r.status} on ${path.split("?")[0]}`);
+  return r.json();
+};
+function ratingFrom(rec) {
+  if (!rec) return null;
+  const {strongBuy:sb=0,buy:b=0,hold:h=0,sell:s=0,strongSell:ss=0} = rec;
+  const n = sb+b+h+s+ss; if (!n) return null;
+  const avg = (sb*5+b*4+h*3+s*2+ss*1)/n;
+  return avg>=4.5?"Strong Buy":avg>=3.5?"Buy":avg>=2.5?"Hold":avg>=1.5?"Sell":"Strong Sell";
+}
+async function liveRow(sym, key) {
+  const iso = d => d.toISOString().slice(0,10), now = new Date();
+  const opt = p => fh(p,key).catch(() => null);          // optional endpoints may be premium/empty
+  const [prof, q, m, rec, hist, cal, dv] = await Promise.all([
+    fh(`/stock/profile2?symbol=${sym}`,key), fh(`/quote?symbol=${sym}`,key),
+    fh(`/stock/metric?symbol=${sym}&metric=all`,key), fh(`/stock/recommendation?symbol=${sym}`,key),
+    opt(`/stock/earnings?symbol=${sym}&limit=4`), opt(`/calendar/earnings?symbol=${sym}&from=${iso(now)}&to=${iso(new Date(+now+150*DAY))}`),
+    opt(`/stock/dividend?symbol=${sym}&from=${iso(new Date(+now-730*DAY))}&to=${iso(now)}`)
+  ]);
+  const mm = m.metric || {}, h0 = (hist||[])[0], nx = ((cal||{}).earningsCalendar||[])[0];
+  const earn = { last: h0 ? h0.period : null, eps: h0 ? h0.actual : null, est: h0 ? h0.estimate : null, surprise: h0 ? h0.surprisePercent : null,
+    revYoy: mm.revenueGrowthTTMYoy ?? null, epsYoy: mm.epsGrowthTTMYoy ?? null, rev:null, guide:"TTM growth from Finnhub (guidance not available)", next: nx ? nx.date : null, nextNote: nx ? "" : "no date in next 150 days" };
+  const pays = Array.isArray(dv) ? dv : null;
+  const div = { now: mm.dividendPerShareAnnual ? `$${mm.dividendPerShareAnnual.toFixed(2)}/yr` : "None found",
+    hist: pays ? `${pays.length} payments: ` + pays.slice(-8).map(p=>`${p.date} $${p.amount}`).join(", ") : "Payment history needs a Finnhub plan with dividend data; showing annual rate only",
+    total: pays ? "$"+pays.reduce((t,p)=>t+(p.amount||0),0).toFixed(2) : "n/a", yld: mm.dividendYieldIndicatedAnnual!=null ? mm.dividendYieldIndicatedAnnual.toFixed(2)+"%" : "n/a" };
+  return { sym, name:prof.name||sym, role:prof.finnhubIndustry||"", price:q.c, mcap:prof.marketCapitalization,
+    ytd: mm.yearToDatePriceReturnDaily ?? null, ret52: mm["52WeekPriceReturnDaily"] ?? null,
+    fpe: mm.peTTM ?? null, upside:null, rating: ratingFrom(rec[0]), earn, div, why:"Live data: P/E is trailing (peTTM); upside needs price-target data (not in Finnhub free tier)." };
+}
+
+// ---- Column glossary (shown from the ⓘ link on each column title) ----
+const GLOSS = {
+  company: {t:"Company", what:"The company in that row, with its US ticker. Greyed tickers are listed outside the US (or private) so you can't buy them on a US exchange.", read:"Click anywhere on a row to expand the full details.", link:null},
+  rel: {t:"Role / link", what:"On Competitors: what the company does. On Suppliers/Customers: what it supplies or buys, how it is linked to the selected company, and how solid the evidence is.", read:"Evidence levels: company filing (strongest) > press/analyst report > assumed (the company never names its customers).", watch:"Reported links can be wrong or out of date; confirm in company filings.", link:null},
+  score: {t:"Opportunity score (0-100)", what:"A rough screening score I built, not a forecast. It averages whichever of these exist: analyst upside (more is better), consensus rating (Strong Buy scores highest), YTD run-up (a big rise lowers the score because less is left to gain) and forward P/E (a high P/E lowers it).", read:"80+ looks attractive on these four measures, 50 is middling, below 40 looks expensive or unloved. Compare scores inside one list, not across tabs.", watch:"It ignores business quality, debt and risks, so use it to shortlist, never as a buy signal. Missing inputs are skipped, so scores built from fewer inputs are less reliable.", link:null},
+  ytd: {t:"YTD % (year to date)", what:"How much the share price has risen or fallen since the start of this calendar year.", read:"+200% means the price tripled. Large gains can mean the good news is already in the price.", watch:"Momentum can continue or reverse; a past rise says nothing certain about the future.", link:"ytd.asp"},
+  upside: {t:"Analyst upside", what:"How far the average analyst price target sits above (+) or below (-) today's price.", read:"+40% means analysts on average expect the stock to reach a price 40% higher within about 12 months. Negative means analysts think it's already above fair value.", watch:"Targets are opinions, often revised after the price moves, and they are usually optimistic.", link:"pricetarget.asp"},
+  fpe: {t:"Fwd P/E (forward price-to-earnings)", what:"Share price divided by the profit per share analysts expect over the next 12 months. It shows how many dollars you pay for one dollar of expected profit.", read:"Roughly: under 15 cheap, 15-25 typical, 40+ expensive and relying on fast growth. Compare with similar companies, since software and chip stocks usually trade higher than banks or utilities.", watch:"A low P/E can signal a problem, and a company with no profit has no P/E (shown as n/a). Some rows use trailing P/E when live data is missing.", link:"forwardpe.asp"},
+  rating: {t:"Consensus", what:"The overall analyst recommendation from Wall Street analysts covering the stock, from Strong Buy down to Sell.", read:"Most large stocks are rated Buy, so Hold or Sell is the unusual signal.", watch:"Analysts rarely say Sell, so Strong Buy alone tells you little. Compare it with the upside figure.", link:"consensusestimate.asp"},
+  rev: {t:"Rev growth (revenue growth)", what:"How much revenue rose in the latest quarter compared with the same quarter a year earlier.", read:"+50% or more is rapid growth. Growth that speeds up from quarter to quarter is a stronger sign than a one-off jump.", watch:"Snapshot rows (Nvidia group) use the figure each company reported; live rows use Yahoo's latest quarterly figure.", link:"year-over-year.asp"},
+  eps: {t:"EPS vs est. (earnings surprise)", what:"EPS is earnings (profit) per share. This shows how far the last reported figure was above (+) or below (-) what analysts expected.", read:"Small beats (1-10%) are normal. A miss, or a beat followed by a falling share price, means expectations were very high.", watch:"Surprises above 150% are hidden because they are usually data quirks, such as a tiny estimate or one-off gains.", link:"earningssurprise.asp"},
+  next: {t:"Next earnings", what:"The date of the next quarterly results report. Share prices often move sharply on these days.", read:"Dates within 30 days appear in the Alerts column and the highlights strip.", watch:"Many dates are estimates until the company confirms them; n/a means none is published yet.", link:null},
+  alerts: {t:"Alerts", what:"Automatic flags from the data: EPS beat or miss, high revenue growth (50%+), shrinking revenue, a sell-off despite good results, and earnings within 30 days.", read:"Green is positive, amber is something to watch, red is negative. Expand the row to see all of them.", watch:"Alerts are rule-based and simple; they point to where to look, they don't explain why.", link:null},
+  yld: {t:"Div yield (dividend yield)", what:"Yearly dividends paid per share divided by the share price. It is the cash income you would get as a percentage of what you pay.", read:"0% means no dividend. Growth stocks often pay little or nothing; a very high yield can warn that the price has fallen or the dividend is at risk.", watch:"Yield changes whenever the share price moves.", link:"dividendyield.asp"},
+  paid: {t:"Paid 2 yrs (dividends paid in two years)", what:"Total dividends paid per share over roughly the last two years.", read:"Compare with the share price: $1 paid on a $150 stock is about 0.7%. $0 means no dividends were paid.", watch:"Nvidia-group figures are my approximations from announced rates, not exact payment ledgers. Live rows come from Yahoo's payment history.", link:null},
+  also: {t:"On this page", what:"Which of the companies listed on this page also buy from (Suppliers tab) or sell to (Customers tab) this company. '1 only' means just one relationship in the dataset.", read:"Several green tags mean the company serves multiple names here, so its fortunes depend less on any single one. A single amber tag means it relies on one relationship.", watch:"This counts relationships in my researched dataset only, not the company's full customer list.", link:"supplychain.asp"}
+};
+
+// ---- Render ----
+const $ = id => document.getElementById(id);
+const fmt = (v,s="") => v==null ? '<span class="mute">n/a</span>' : v.toFixed(v%1?1:0)+s;
+const colorPct = v => v==null ? "" : v>=0 ? "good" : "bad";
+const NA = '<span class="mute">n/a</span>';
+let rows = [], base = "", tab = "comp", sort = {comp:{k:"score",dir:-1}, sup:{k:"score",dir:-1}, cus:{k:"score",dir:-1}};
+let supData = {}, tried = new Set(), pending = 0, open = new Set(), show = {val:true, gro:true, div:true};
+
+const sparse = sym => { const r = SNAP[sym]; return !r || (r.ytd==null && r.upside==null && r.fpe==null && !r.rating); };
+const entRow = sym => supData[sym] || (SNAP[sym] ? {sym, ...SNAP[sym]} : null);
+const onPage = sym => rows.some(r => r.sym === sym);
+const sellsTo = sym => [...new Set(LINKS.filter(l => l.s===sym && onPage(l.c)).map(l => l.c))];
+const buysFrom = sym => [...new Set(LINKS.filter(l => l.c===sym && onPage(l.s)).map(l => l.s))];
+const CONF = {filing:"company filing", reported:"press/analyst report", assumed:"assumed (not named by company)"};
+
+// ---- Build the entries shown in each tab ----
+function entries(which) {
+  if (which === "comp") return rows.map(d => ({sym:d.sym, name:d.name, us:true, d, rel:d.role||"", sub:d.sym===base?"Selected company":"", note:d.why||"", isBase:d.sym===base}));
+  const sup = which === "sup", list = LINKS.filter(l => sup ? l.c===base : l.s===base), seen = {};
+  list.forEach(l => { const k = sup ? l.s : l.c; if (!seen[k]) seen[k] = l; });
+  return Object.entries(seen).map(([sym,l]) => {
+    const e = ENT[sym] || {name:(SNAP[sym]||{}).name||sym, us:true};
+    const total = new Set(LINKS.filter(x => sup ? x.s===sym : x.c===sym).map(x => sup ? x.c : x.s)).size;
+    return {sym, name:e.name, us:e.us, priv:e.priv, d: e.us ? entRow(sym) : null, rel:l.layer, sub:`${l.link} · ${CONF[l.conf]}`, note:l.note||"",
+      also: sup ? sellsTo(sym) : buysFrom(sym), total};
+  });
+}
+const counts = () => ({comp:rows.length, sup:LINKS.filter(l=>l.c===base).length ? new Set(LINKS.filter(l=>l.c===base).map(l=>l.s)).size : 0, cus:LINKS.filter(l=>l.s===base).length ? new Set(LINKS.filter(l=>l.s===base).map(l=>l.c)).size : 0});
+
+// ---- Columns ----
+const surprise = d => { const e = d && d.earn; const v = e && e.eps!=null && e.est ? (e.eps-e.est)/Math.abs(e.est)*100 : (e && e.surprise!=null ? e.surprise : null); return v!=null && Math.abs(v)>150 ? null : v; };  // >150% is usually a data quirk (tiny estimate)
+const num = v => { const n = parseFloat(String(v||"").replace(/[~$,<]/g,"")); return isNaN(n) ? null : n; };
+const COLS = [
+  {k:"rel",    l:"Role / link",   g:"base", cls:"l", get:e=>e.rel},
+  {k:"score",  l:"Score",         g:"base", get:e=>e.d?score(e.d):null},
+  {k:"ytd",    l:"YTD %",         g:"val",  get:e=>e.d?e.d.ytd:null},
+  {k:"upside", l:"Analyst upside",g:"val",  get:e=>e.d?e.d.upside:null},
+  {k:"fpe",    l:"Fwd P/E",       g:"val",  get:e=>e.d?e.d.fpe:null},
+  {k:"rating", l:"Consensus",     g:"val",  get:e=>e.d&&e.d.rating?RATING_PTS[e.d.rating]:null},
+  {k:"rev",    l:"Rev growth",    g:"gro",  get:e=>e.d&&e.d.earn?e.d.earn.revYoy:null},
+  {k:"eps",    l:"EPS vs est.",   g:"gro",  get:e=>surprise(e.d)},
+  {k:"next",   l:"Next earnings", g:"gro",  get:e=>e.d&&e.d.earn?e.d.earn.next:null},
+  {k:"alerts", l:"Alerts",        g:"gro",  cls:"l", get:e=>e.d?alertsFor(e.d).length:null},
+  {k:"yld",    l:"Div yield",     g:"div",  get:e=>e.d&&e.d.div?num(e.d.div.yld):null},
+  {k:"paid",   l:"Paid 2 yrs",    g:"div",  get:e=>e.d&&e.d.div?num(e.d.div.total):null},
+  {k:"also",   l:"On this page",  g:"rel",  cls:"l", get:e=>e.also?e.also.length:null}
+];
+const colsFor = which => COLS.filter(c => c.g==="base" || (c.g==="rel" ? which!=="comp" : show[c.g]));
+
+function cell(c, e) {
+  const d = e.d, wait = !d && e.us && !e.priv && pending>0, none = wait ? '<span class="mute">…</span>' : NA;
+  switch (c.k) {
+    case "rel": return `<div>${e.rel||""}</div>${e.sub?`<div class="sub">${e.sub}</div>`:""}`;
+    case "score": { if (!d) return none; const s = score(d); return s==null ? NA : `<span class="bar-s" style="width:${s*0.5}px"></span><b>${s}</b>`; }
+    case "ytd": return d ? fmt(d.ytd,"%") : none;
+    case "upside": return d ? fmt(d.upside,"%") : none;
+    case "fpe": return d ? fmt(d.fpe,"x") : none;
+    case "rating": return d && d.rating ? `<span class="pill" ${e.us&&!e.priv?`data-an="${e.sym}"`:""}>${d.rating}</span>` : none;
+    case "rev": { const v = d&&d.earn?d.earn.revYoy:null; return v==null ? none : (v>0?"+":"")+Math.round(v)+"%"; }
+    case "eps": { const v = surprise(d); return v==null ? none : (v>=0?"+":"")+v.toFixed(1)+"%"; }
+    case "next": return d&&d.earn&&d.earn.next ? d.earn.next : none;
+    case "alerts": { if (!d) return none; const a = alertsFor(d); return a.length ? a.slice(0,2).map(([k,t])=>`<span class="alert ${k}">${t.length>34?t.slice(0,32)+"…":t}</span>`).join("") + (a.length>2?`<span class="sub">+${a.length-2}</span>`:"") : '<span class="mute">none</span>'; }
+    case "yld": return d&&d.div ? d.div.yld : none;
+    case "paid": return d&&d.div ? d.div.total : none;
+    case "also": { const a = e.also||[]; return (a.length ? a.map(p=>`<span class="alert ${a.length>1?"good":"warn"}">${p}</span>`).join("") : '<span class="mute">—</span>') + (e.total===1?' <span class="alert warn" title="Only one relationship in this dataset">1 only</span>':""); }
+  }
+  return "";
+}
+const TONE = {ytd:v=>colorPct(v), upside:v=>colorPct(v), rev:v=>colorPct(v), eps:v=>colorPct(v)};
+
+function detail(e, ncols, which) {
+  const d = e.d || {}, ea = d.earn || {}, dv = d.div || {}, p = (h,b) => `<div><h4>${h}</h4><p>${b}</p></div>`;
+  const al = e.d ? alertsFor(d) : [];
+  const rel = which==="comp" ? "" : p("Relationship", `${e.rel}<br><span class="m">${e.sub}</span>` + (e.also&&e.also.length ? `<br>${which==="sup"?"Supplies":"Buys from"} on this page: <b>${e.also.join(", ")}</b> (${e.also.length} of ${rows.length})` : `<br><span class="m">Not linked to any other company on this page</span>`) + (e.total!=null?`<br><span class="m">${e.total} known ${which==="sup"?"customer":"supplier"}${e.total===1?"":"s"} in this dataset</span>`:""));
+  return `<tr class="detail"><td colspan="${ncols}"><div class="grid">
+    ${p("Valuation", `Fwd P/E ${d.fpe!=null?d.fpe.toFixed(1)+"x":"n/a"} · Consensus ${d.rating||"n/a"}<br>YTD ${d.ytd!=null?d.ytd.toFixed(0)+"%":"n/a"} · Analyst upside ${d.upside!=null?d.upside.toFixed(1)+"%":"n/a"}${d.conf!=null?`<br>My 12-mo confidence: ${d.conf}%`:""}`)}
+    ${p("Last earnings", `${ea.last||"n/a"}${ea.rev?` · revenue ${ea.rev}`:""}${ea.revYoy!=null?` (${ea.revYoy>0?"+":""}${Math.round(ea.revYoy)}% YoY)`:""}<br>EPS ${ea.eps!=null?ea.eps.toFixed(2):"n/a"} vs est. ${ea.est!=null?ea.est.toFixed(2):"n/a"}<br><span class="m">Next: ${ea.next||"n/a"}${ea.nextNote?` — ${ea.nextNote}`:""}</span>`)}
+    ${p("Guidance & growth", ea.guide||"n/a")}
+    ${p("Dividends (last 2 yrs)", `${dv.now||"n/a"} · yield ${dv.yld||"n/a"} · paid ${dv.total||"n/a"}/share<br><span class="m">${dv.hist||""}</span>`)}
+    ${rel}
+    ${p("Alerts", al.length ? al.map(([k,t])=>`<span class="alert ${k}">${t}</span>`).join("") : "None")}
+    ${e.note ? p("Notes / risk", e.note) : ""}
+  </div></td></tr>`;
+}
+
+function highlights(list, which) {
+  const sc = x => x.d ? score(x.d) : null, out = [];
+  const best = list.filter(x=>sc(x)!=null).sort((a,b)=>sc(b)-sc(a))[0];
+  if (best) out.push(["Highest score", `${best.sym} <span class="sub">${best.name}</span> · ${sc(best)}`]);
+  const soon = list.filter(x => { const n = x.d&&x.d.earn&&x.d.earn.next; if (!n) return false; const dd = (new Date(n)-Date.now())/DAY; return dd>=-1 && dd<=30; }).sort((a,b)=>a.d.earn.next<b.d.earn.next?-1:1);
+  if (soon.length) out.push(["Earnings in 30 days", soon.slice(0,5).map(x=>`${x.sym} <span class="sub">${x.d.earn.next.slice(5)}</span>`).join(" · ") + (soon.length>5?` <span class="sub">+${soon.length-5} more</span>`:"")]);
+  const hot = list.filter(x=>x.d&&x.d.ytd>=100);
+  if (hot.length) out.push(["Already up 100%+ YTD", hot.map(x=>x.sym).join(", ")]);
+  if (which!=="comp") { const multi = list.filter(x=>x.also&&x.also.length>1); if (multi.length) out.push([which==="sup"?"Supplies 2+ companies here":"Buys from 2+ companies here", multi.sort((a,b)=>b.also.length-a.also.length).slice(0,5).map(x=>`${x.sym} <span class="sub">${x.also.length}</span>`).join(" · ") + (multi.length>5?` <span class="sub">+${multi.length-5} more</span>`:"")]); }
+  return out.map(([t,v]) => `<div><div class="t">${t}</div><div class="v">${v}</div></div>`).join("");
+}
+
+function render() {
+  const cnt = counts(), usOnly = $("usOnly").checked, which = tab;
+  $("tabs").innerHTML = [["comp","Competitors"],["sup",`Suppliers`],["cus",`Customers`]].map(([k,l]) =>
+    `<button class="tab ${k===which?"on":""}" data-t="${k}" ${cnt[k]?"":"disabled"} title="${cnt[k]?"":"No curated data for "+base+" yet"}">${l}<span class="n">${cnt[k]||"—"}</span></button>`).join("");
+  document.querySelectorAll(".tab").forEach(b => b.onclick = () => { if (!b.disabled) { tab = b.dataset.t; render(); } });
+
+  let list = entries(which).filter(e => !usOnly || e.us);
+  const cols = colsFor(which), st = sort[which], col = COLS.find(c => c.k===st.k) || COLS[1];
+  list.sort((a,b) => { const x = col.get(a), y = col.get(b); if (x==null) return 1; if (y==null) return -1; return (x>y?1:x<y?-1:0)*st.dir; });
+  $("hl").innerHTML = highlights(list, which);
+
+  const ic = k => `<a class="info" href="#" data-i="${k}" title="What does this column mean?">ⓘ</a>`;
+  let html = `<thead><tr><th>Company${ic("company")}</th>${cols.map(c=>`<th class="${c.cls||""}" data-k="${c.k}">${c.l}${c.k===st.k?(st.dir>0?" ▲":" ▼"):""}${ic(c.k)}</th>`).join("")}</tr></thead><tbody>`;
+  list.forEach(e => {
+    const key = which+":"+e.sym, isOpen = open.has(key);
+    const tag = e.priv ? ' <span class="pill">private</span>' : e.us ? "" : ' <span class="pill">not US-listed</span>';
+    html += `<tr class="row ${e.isBase?"base":""}" data-key="${key}"><td><span class="caret">${isOpen?"▾":"▸"}</span><b>${e.us?e.sym:`<span class="mute">${e.sym}</span>`}</b> <span class="mute">${e.name}</span>${tag}</td>` +
+      cols.map(c => { const v = c.get(e); return `<td class="${c.cls||""} ${TONE[c.k]?TONE[c.k](v):""}">${cell(c,e)}</td>`; }).join("") + "</tr>";
+    if (isOpen) html += detail(e, cols.length+1, which);
+  });
+  if (!list.length) html += `<tr><td colspan="${cols.length+1}" class="mute" style="text-align:left">Nothing to show.</td></tr>`;
+  $("tbl").innerHTML = html + "</tbody>";
+  $("tbl").querySelectorAll("a.info").forEach(a => a.onclick = ev => { ev.preventDefault(); ev.stopPropagation(); showPop(a); });
+  $("tbl").querySelectorAll("th[data-k]").forEach(th => th.onclick = () => { const k = th.dataset.k; sort[which] = {k, dir: st.k===k ? -st.dir : -1}; render(); });
+  $("tbl").querySelectorAll("tr.row").forEach(tr => tr.onclick = ev => { if (ev.target.closest && ev.target.closest("[data-an]")) return; const k = tr.dataset.key; open.has(k) ? open.delete(k) : open.add(k); render(); });
+
+  // Fetch live data for related companies we have no usable numbers for
+  const need = [...new Set(entries("sup").concat(entries("cus")).filter(e => e.us && !e.priv).map(e => e.sym))].filter(x => !supData[x] && !tried.has(x) && sparse(x));
+  if (need.length && !render.busy) {
+    need.forEach(x => tried.add(x));
+    render.busy = true; pending = need.length; 
+    Promise.allSettled(need.map(x => api(`/api/company?symbol=${x}`).then(r => { supData[x] = r; })))
+      .then(() => { render.busy = false; pending = 0; render(); });
+  }
+}
+
+function showPop(a) {
+  const g = GLOSS[a.dataset.i], p = $("pop"); if (!g) return;
+  p.innerHTML = `<span class="x" id="popx">✕</span><h3>${g.t}</h3><p>${g.what}</p>` + (g.read?`<p><b>How to read it:</b> ${g.read}</p>`:"") + (g.watch?`<p><b>Watch out:</b> ${g.watch}</p>`:"") +
+    (g.link?`<p><a href="https://www.investopedia.com/terms/${g.link}" target="_blank" rel="noopener">Learn more on Investopedia ↗</a></p>`:"");
+  p.style.display = "block";
+  const r = a.getBoundingClientRect(), w = p.offsetWidth, h = p.offsetHeight;
+  p.style.left = Math.max(10, Math.min(r.left, innerWidth - w - 10)) + "px";
+  p.style.top = (r.bottom + h + 10 > innerHeight ? Math.max(10, r.top - h - 6) : r.bottom + 6) + "px";
+  $("popx").onclick = () => p.style.display = "none";
+}
+document.addEventListener("click", e => { const p = $("pop"); if (p.style.display==="block" && !p.contains(e.target)) p.style.display = "none"; });
+document.addEventListener("keydown", e => { if (e.key==="Escape") $("pop").style.display = "none"; });
+
+
+// ---- "Why this rating?" hover (analyst evidence from /api/analysts) ----
+const anCache = {}; let tipTimer = null, tipFor = null;
+const money = v => v==null ? "n/a" : "$"+v.toFixed(2);
+const pc = (v,d=0) => v==null ? "n/a" : (v>0?"+":"")+v.toFixed(d)+"%";
+function actionText(h) {
+  const to = h.to || "", from = h.from || "";
+  return h.action==="up" ? `upgraded to ${to}${from?` (from ${from})`:""}` : h.action==="down" ? `downgraded to ${to}${from?` (from ${from})`:""}` : h.action==="init" ? `started coverage at ${to}` : `${h.action==="reit"?"reiterated":"maintained"} ${to}`;
+}
+function tipHtml(sym, a) {
+  const c = a.counts, tot = c.strongBuy+c.buy+c.hold+c.sell+c.strongSell, buyPct = tot ? (c.strongBuy+c.buy)/tot*100 : null;
+  const col = ["--good","#7ac29a","--mute","#e0a080","--bad"], seg = [c.strongBuy,c.buy,c.hold,c.sell,c.strongSell];
+  const bar = tot ? `<div class="dist">${seg.map((n,i)=>n?`<span style="flex:${n};background:${col[i].startsWith("--")?`var(${col[i]})`:col[i]}"></span>`:"").join("")}</div>` : "";
+  const label = a.label || "n/a", why = /Buy/.test(label) ? "Why analysts say "+label : /Hold/.test(label) ? "Why analysts say Hold" : "Why analysts say "+label;
+  let h = `<h4>${sym}: ${why}</h4>`;
+  if (tot) h += `<p><b>${buyPct.toFixed(0)}%</b> of ${tot} analysts rate it Buy or better${bar}<span class="m">${c.strongBuy} Strong Buy · ${c.buy} Buy · ${c.hold} Hold · ${c.sell} Sell · ${c.strongSell} Strong Sell</span></p>`;
+  if (/Buy/.test(label) && buyPct!=null && buyPct < 50) h += `<p class="warn"><b>Note:</b> the overall label says ${label}, but most analysts (${(c.hold/tot*100).toFixed(0)}%) say Hold. The average is pulled up by a few bullish calls.</p>`;
+  if (a.target) h += `<p><b>Price target:</b> average ${money(a.target)} vs price ${money(a.price)} = <b class="${a.upside>=0?"good":"bad"}">${pc(a.upside,1)}</b> upside<br><span class="m">Range ${money(a.targetLow)} to ${money(a.targetHigh)}</span></p>`;
+  if (a.revGrowth!=null || a.earnGrowth!=null) h += `<p><b>Business momentum:</b> revenue ${pc(a.revGrowth)} YoY${a.earnGrowth!=null?`, earnings ${pc(a.earnGrowth)} YoY`:""}</p>`;
+  if (a.recent && a.recent.length) h += `<p><b>Recent analyst moves:</b><br>` + a.recent.slice(0,3).map(r => `<span class="m">${r.date} · ${r.firm}: ${actionText(r)}</span>`).join("<br>") + "</p>";
+  return h + `<p class="m">These are the numbers behind the rating. Analysts' written reasoning isn't in the free data; read their notes for the full story. Not investment advice.</p>`;
+}
+function placeTip(el) {
+  const t = $("tip"), r = el.getBoundingClientRect(); t.style.display = "block";
+  const w = t.offsetWidth, h = t.offsetHeight;
+  t.style.left = Math.max(10, Math.min(r.left, innerWidth - w - 10)) + "px";
+  t.style.top = (r.bottom + h + 12 > innerHeight ? Math.max(10, r.top - h - 8) : r.bottom + 6) + "px";
+}
+async function showTip(el) {
+  const sym = el.dataset.an; tipFor = sym; const t = $("tip");
+  t.innerHTML = `<h4>${sym}</h4><p class="m">Loading analyst data…</p>`; placeTip(el);
+  try {
+    const a = anCache[sym] || (anCache[sym] = await api(`/api/analysts?symbol=${sym}`));
+    if (tipFor === sym) { t.innerHTML = tipHtml(sym, a); placeTip(el); }
+  } catch (e) { delete anCache[sym]; if (tipFor === sym) { t.innerHTML = `<h4>${sym}</h4><p class="m">Analyst details unavailable (${e.message}). Needs server.py running.</p>`; placeTip(el); } }
+}
+const hideTip = () => { tipFor = null; $("tip").style.display = "none"; };
+document.addEventListener("mouseover", e => { const el = e.target.closest && e.target.closest("[data-an]"); if (!el) return; clearTimeout(tipTimer); tipTimer = setTimeout(() => showTip(el), 200); });
+document.addEventListener("mouseout", e => { const el = e.target.closest && e.target.closest("[data-an]"); if (!el) return; clearTimeout(tipTimer); tipTimer = setTimeout(hideTip, 250); });
+$("tip").addEventListener("mouseenter", () => clearTimeout(tipTimer));
+$("tip").addEventListener("mouseleave", () => { tipTimer = setTimeout(hideTip, 150); });
+document.addEventListener("click", e => { const el = e.target.closest && e.target.closest("[data-an]"); if (el) { e.stopPropagation(); showTip(el); } else if (!$("tip").contains(e.target)) hideTip(); });
+
+async function api(path) {
+  const r = await fetch(path); const j = await r.json();
+  if (!r.ok) throw new Error(j.error || "API error"); return j;
+}
+async function analyze() {
+  const sym = $("ticker").value.trim().toUpperCase(); if (!sym) return;
+  base = sym; tab = "comp"; open = new Set();
+  $("status").textContent = "Loading…";
+  const typed = $("peers").value.split(/[ ,]+/).map(x=>x.trim().toUpperCase()).filter(Boolean);
+  try {
+    const key = getKey();
+    let serverOk = true, note = "";
+    if (SNAP[sym] && !typed.length) {
+      rows = [sym,...Object.keys(SNAP).filter(k => k!==sym)].map(s => ({sym:s, ...SNAP[s]}));
+      $("status").textContent = `Snapshot data as of ${SNAPSHOT_DATE}. Click a row for details.`;
+      $("foot").innerHTML = "<p>Snapshot figures come from news/analyst summaries and are approximate; 'n/a' = not found. Score = average of analyst upside, consensus rating, YTD run-up (penalty) and forward P/E (penalty). 'My 12-mo confidence' is a subjective estimate, not a calculated probability. Dividend totals are approximations from announced rates. Not investment advice.</p>";
+    } else {
+      let peers = typed;
+      if (!peers.length && CURATED_PEERS[sym]) { peers = CURATED_PEERS[sym]; note = "Competitors are my curated picks; type your own to change them."; }
+      if (!peers.length) {
+        try { peers = (await api(`/api/similar?symbol=${sym}`)).slice(0,6); note = "No curated list: these are Yahoo's 'similar stocks' (often NOT true competitors). Type your own in the Competitors box."; }
+        catch (e) { serverOk = false; }
+      }
+      if (serverOk) {
+        const all = [sym,...peers], out = await Promise.allSettled(all.map(s => api(`/api/company?symbol=${s}`)));
+        rows = out.filter(x=>x.status==="fulfilled").map(x=>x.value);
+        const bad = all.filter((s,i) => out[i].status==="rejected");
+        if (!rows.length) throw new Error(out[0].reason ? out[0].reason.message : "No data returned");
+        $("status").textContent = `Live data (Yahoo Finance) for ${sym} and ${rows.length-1} competitors.` + (bad.length?` No data for: ${bad.join(", ")}.`:"") + (note?` ${note}`:"");
+        $("foot").innerHTML = "<p>Live mode via server.py: YTD, forward P/E, analyst target upside and consensus come from Yahoo Finance (unofficial; may be delayed or missing). No 'my confidence' for live tickers.</p>";
+      } else if (key) {
+        peers = (await fh(`/stock/peers?symbol=${sym}`, key)).filter(p=>p!==sym && !p.includes(".")).slice(0,8);
+        const list = await Promise.allSettled([sym,...peers].map(s => liveRow(s,key)));
+        rows = list.filter(x=>x.status==="fulfilled").map(x=>x.value);
+        if (!rows.length) throw new Error("No data returned");
+        $("status").textContent = `Live data (Finnhub) for ${sym} and ${rows.length-1} peers.`;
+        $("foot").innerHTML = "<p>Finnhub: trailing P/E, YTD, recommendation mix. Analyst upside is not in the free tier.</p>";
+      } else {
+        rows = []; $("tbl").innerHTML = ""; $("hl").innerHTML = ""; $("tabs").innerHTML = "";
+        $("status").textContent = "Only the six snapshot tickers work without a data source. Start the tool with 'python3 server.py' (no key needed) or add a Finnhub key."; return;
+      }
+    }
+    $("foot").innerHTML += "<p>Suppliers/customers: researched by hand from filings and press (see evidence tag on each link); 'Known customers' counts relationships in this dataset only. Supplier and customer scores use the same formula and describe the stock, not its dependence on " + base + ".</p>";
+    render();
+  } catch (e) { $("status").innerHTML = `<span class="bad">${e.message}</span>`; }
+}
+
+
+// ---- Discover (needs server.py) ----
+const STARTERS = [["NVDA","Nvidia","AI chips"],["AAPL","Apple","Devices & services"],["MSFT","Microsoft","Cloud & software"],["AMZN","Amazon","Cloud & retail"],["GOOGL","Alphabet","Search & AI"],["META","Meta","Social & AI"],["TSLA","Tesla","Electric vehicles"],["JPM","JPMorgan","Banking"]];
+Object.assign(CURATED_PEERS, {AAPL:["MSFT","GOOGL","DELL","HPQ"], MSFT:["GOOGL","AMZN","ORCL","CRM"], AMZN:["MSFT","GOOGL","WMT","COST"], GOOGL:["MSFT","META","AMZN"], META:["GOOGL","SNAP","PINS","RDDT"], TSLA:["GM","F","RIVN","LCID","TM"], JPM:["BAC","WFC","C","GS","MS"]});
+const DAYS = d => (new Date(d) - Date.now()) / DAY;
+const LISTS = [
+  {id:"growth",  t:"Growing profits, not yet expensive", d:"Expected earnings growth of 20%+ (under 200%, to skip one-off distortions), forward P/E of 25 or less, and analyst rating of 2.2 or better.", f:q=>q.epsGrowth>=20 && q.fpe>0 && q.fpe<=25 && q.rating!=null && q.rating<=2.2, by:q=>-q.epsGrowth},
+  {id:"loved",   t:"Analysts love it, price hasn't run", d:"Analyst rating of 1.8 or better (1 = Strong Buy, 5 = Sell) but up less than 15% over 12 months.", f:q=>q.rating!=null && q.rating<=1.8 && q.chg52!=null && q.chg52<15, by:q=>q.rating},
+  {id:"soon",    t:"Reporting earnings in the next 14 days", d:"Results days often move prices sharply. Good time to read up, risky time to buy blind.", f:q=>q.next && DAYS(q.next)<=14, by:q=>q.next},
+  {id:"income",  t:"Dividend payers", d:"Yield of 3%+ with a forward P/E of 25 or less.", f:q=>q.yld>=3 && q.fpe>0 && q.fpe<=25, by:q=>-q.yld},
+  {id:"beaten",  t:"Beaten down, analysts still positive", d:"Down 10%+ over 12 months but rated 2.5 or better. Cheap can mean broken; check why.", f:q=>q.chg52!=null && q.chg52<=-10 && q.rating!=null && q.rating<=2.5, by:q=>q.chg52},
+  {id:"momentum",t:"Momentum leaders (already extended)", d:"Up 60%+ in 12 months. Strong runs can continue or reverse; many are already expensive.", f:q=>q.chg52>=60, by:q=>-q.chg52}
+];
+let disc = null, discSel = null, dsort = {k:"chg52", dir:-1};
+const fp = (v,d=0) => v==null ? '<span class="mute">n/a</span>' : (v>0?"+":"")+v.toFixed(d)+"%";
+const cp = v => v==null ? "mute" : v>=0 ? "good" : "bad";
+
+function setMode(m) {
+  $("discover").hidden = m !== "discover"; $("analyze").hidden = m !== "analyze";
+  document.querySelectorAll(".mode").forEach(b => b.classList.toggle("on", b.dataset.m === m));
+  if (m === "discover") loadDiscover();
+}
+function goAnalyze(sym, peers) {
+  $("ticker").value = sym; $("peers").value = (peers || []).filter(p => p !== sym).slice(0,5).join(",");
+  setMode("analyze"); analyze();
+}
+async function loadDiscover() {
+  if (disc) return renderDiscover();
+  $("sect").innerHTML = '<tbody><tr><td class="mute" style="text-align:left">Loading market overview…</td></tr></tbody>';
+  try {
+    const sec = await api("/api/sectors");
+    const syms = [...new Set(sec.sectors.flatMap(s => s.symbols).concat(STARTERS.map(x => x[0])))];
+    disc = {spy: sec.spy, sectors: sec.sectors, q: await api("/api/universe?symbols=" + syms.join(","))};
+    renderDiscover();
+  } catch (e) {
+    $("sect").innerHTML = `<tbody><tr><td class="bad" style="text-align:left">Discover needs the data server (python3 server.py). ${e.message}. You can still use <b>Analyze</b> for the six snapshot tickers.</td></tr></tbody>`;
+    renderStarters();
+  }
+}
+function tags(q) {
+  const t = [];
+  if (q.chg52 >= 100) t.push(["warn","Extended"]);
+  if (q.fromHigh != null && q.fromHigh > -3) t.push(["warn","At 52-wk high"]);
+  if (q.fpe == null) t.push(["bad","No P/E (unprofitable?)"]); else if (q.fpe > 50) t.push(["warn","Expensive"]);
+  if (q.rating != null && q.rating <= 1.8) t.push(["good","Analysts bullish"]);
+  return t.map(([c,l]) => `<span class="tag ${c}" ${l==="Analysts bullish"?`data-an="${q.sym}"`:""}>${l}</span>`).join("");
+}
+function qTable(items, sel) {
+  const cols = [["sym","Company","l"],["price","Price"],["chg52","12 mo"],["fromHigh","vs 52-wk high"],["fpe","Fwd P/E"],["epsGrowth","Fwd EPS growth"],["rating","Analysts"],["next","Next earnings"],["yld","Yield"],["flags","Flags","l"],["go",""]];
+  const val = (q,k) => k==="sym" ? q.sym : q[k];
+  const sorted = [...items].sort((a,b) => { const x = val(a,dsort.k), y = val(b,dsort.k); if (x==null) return 1; if (y==null) return -1; return (x>y?1:x<y?-1:0)*dsort.dir; });
+  return `<div class="card"><div class="tw" style="max-height:none"><table id="dtbl"><thead><tr>${cols.map(([k,l,c]) => `<th class="${c||""}" ${k!=="flags"&&k!=="go"?`data-k="${k}"`:""}>${l}${k===dsort.k?(dsort.dir>0?" ▲":" ▼"):""}</th>`).join("")}</tr></thead><tbody>` +
+    sorted.map(q => `<tr><td><b>${q.sym}</b> <span class="mute">${q.name}</span></td><td>${q.price!=null?"$"+q.price.toFixed(2):"n/a"}</td>
+      <td class="${cp(q.chg52)}">${fp(q.chg52)}</td><td class="${cp(q.fromHigh)}">${fp(q.fromHigh)}</td>
+      <td>${q.fpe!=null?q.fpe.toFixed(1)+"x":'<span class="mute">n/a</span>'}</td><td class="${cp(q.epsGrowth)}">${fp(q.epsGrowth)}</td>
+      <td>${q.ratingLabel?`<span class="pill" data-an="${q.sym}">${q.ratingLabel}</span>`:'<span class="mute">n/a</span>'}</td>
+      <td>${q.next||'<span class="mute">n/a</span>'}</td><td>${q.yld?q.yld.toFixed(1)+"%":"0%"}</td><td class="l">${tags(q)}</td>
+      <td><button data-go="${q.sym}">Analyze →</button></td></tr>`).join("") + "</tbody></table></div></div>";
+}
+function showPanel(title, desc, items, peers) {
+  $("dpanel").innerHTML = `<h3>${title} <span class="sub">(${items.length})</span></h3><div class="sub" style="margin-bottom:6px">${desc}</div>` +
+    (items.length ? qTable(items) : '<div class="card" style="padding:12px" class="mute">No companies match right now. That is a result too: nothing in this group currently fits the rule.</div>') +
+    '<div class="sub" style="margin-top:4px">Analyze → opens the company with its competitors, suppliers and customers. Click a column title to sort.</div>';
+  $("dpanel").querySelectorAll("th[data-k]").forEach(th => th.onclick = () => { const k = th.dataset.k; dsort = {k, dir: dsort.k===k ? -dsort.dir : (k==="sym"||k==="rating"||k==="next"?1:-1)}; showPanel(title, desc, items, peers); });
+  $("dpanel").querySelectorAll("button[data-go]").forEach(b => b.onclick = () => goAnalyze(b.dataset.go, peers));
+  $("dpanel").scrollIntoView && $("dpanel").scrollIntoView({behavior:"smooth", block:"nearest"});
+}
+function renderStarters() {
+  $("starters").innerHTML = STARTERS.map(([s,n,d]) => `<button class="lcard" data-s="${s}"><div class="h">${s} <span class="mute" style="font-weight:400">${n}</span></div><div class="d">${d}</div><div class="p">See competitors, suppliers, customers →</div></button>`).join("");
+  $("starters").querySelectorAll("button").forEach(b => b.onclick = () => goAnalyze(b.dataset.s, CURATED_PEERS[b.dataset.s] || []));
+}
+function renderDiscover() {
+  const sp = disc.spy, sectors = [...disc.sectors].sort((a,b) => (b.rel3m ?? -99) - (a.rel3m ?? -99));
+  const mx = Math.max(10, ...sectors.map(s => Math.abs(s.rel3m || 0)));
+  $("sect").innerHTML = `<thead><tr><th>Sector / theme</th><th>1 mo</th><th>3 mo</th><th>YTD</th><th class="l">3 mo vs S&amp;P 500 (${fp(sp.r3m,1)})</th><th class="l">Signal</th><th></th></tr></thead><tbody>` +
+    sectors.map(s => { const r = s.rel3m || 0, sig = [];
+      if (s.rel3m >= 3) sig.push(["good","Leading"]); else if (s.rel3m <= -3) sig.push(["bad","Lagging"]); else sig.push(["","In line"]);
+      if (s.ytd >= 50) sig.push(["warn","Extended"]);
+      return `<tr><td><b>${s.name}</b> <span class="sub">${s.etf==="basket"?"equal-weight basket":s.etf}</span></td><td class="${cp(s.r1m)}">${fp(s.r1m,1)}</td><td class="${cp(s.r3m)}">${fp(s.r3m,1)}</td><td class="${cp(s.ytd)}">${fp(s.ytd,0)}</td>
+      <td class="l"><span class="rbar" style="width:${Math.abs(r)/mx*90}px;background:var(${r>=0?"--good":"--bad"})"></span>${fp(s.rel3m,1)}</td>
+      <td class="l">${sig.map(([c,l])=>`<span class="tag ${c}">${l}</span>`).join("")}</td><td><button data-sec="${s.id}">See leaders</button></td></tr>`; }).join("") + "</tbody>";
+  $("sect").querySelectorAll("button[data-sec]").forEach(b => b.onclick = () => {
+    const s = disc.sectors.find(x => x.id === b.dataset.sec); dsort = {k:"chg52", dir:-1};
+    showPanel(`Leaders in ${s.name}`, `Large companies in this group, from my curated list. Sector ${fp(s.r3m,1)} over 3 months vs S&P ${fp(sp.r3m,1)}.`, s.symbols.map(x => disc.q[x]).filter(Boolean), s.symbols);
+  });
+  $("lists").innerHTML = LISTS.map(L => { const hit = Object.values(disc.q).filter(L.f).sort((a,b) => { const x=L.by(a), y=L.by(b); return x>y?1:x<y?-1:0; });
+    L.hit = hit; return `<button class="lcard" data-l="${L.id}"><div class="h">${L.t}</div><div class="d">${L.d}</div><div class="p">${hit.length ? `<b>${hit.length}</b>: ` + hit.slice(0,4).map(q=>q.sym).join(", ") + (hit.length>4?"…":"") : '<span class="mute">none right now</span>'}</div></button>`; }).join("");
+  $("lists").querySelectorAll("button").forEach(b => b.onclick = () => { const L = LISTS.find(x => x.id === b.dataset.l); dsort = {k: L.id==="soon"?"next":L.id==="income"?"yld":L.id==="loved"?"rating":L.id==="growth"?"epsGrowth":"chg52", dir: L.id==="soon"||L.id==="loved"||L.id==="beaten"?1:-1};
+    document.querySelectorAll("#lists .lcard").forEach(c => c.classList.toggle("on", c===b)); showPanel(L.t, L.d, L.hit, L.hit.map(q=>q.sym)); });
+  renderStarters();
+}
+
+$("go").onclick = () => { setMode("analyze"); analyze(); };
+$("usOnly").onchange = () => rows.length && render();
+document.querySelectorAll("input[data-g]").forEach(i => i.onchange = () => { show[i.dataset.g] = i.checked; rows.length && render(); });
+$("peers").onkeydown = e => { if (e.key==="Enter") $("go").click(); };
+$("ticker").onkeydown = e => { if (e.key==="Enter") $("go").click(); };
+document.querySelectorAll(".mode").forEach(b => b.onclick = () => { setMode(b.dataset.m); if (b.dataset.m==="analyze" && !rows.length) analyze(); });
+$("saveKey").onclick = () => { setKey($("key").value.trim()); $("key").value=""; $("status").textContent = "Key saved in this browser only."; };
+if (getKey()) $("key").placeholder = "Key saved";
+setMode("discover");
+</script>
+</body>
+</html>
